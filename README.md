@@ -1,393 +1,289 @@
-# Enterprise API Traffic Control & Rate Limiting System
+# 🚦 Enterprise API Traffic Control & Rate Limiting System
 
-## Overview
-
-Enterprise API Traffic Control & Rate Limiting System is a backend project built using Spring Boot, Redis, JWT Authentication, Docker, and Lua scripting. The system controls API traffic using a distributed Token Bucket algorithm and provides role-based request throttling for different user plans.
-
-The project simulates real-world API Gateway behavior used in scalable backend systems to prevent API abuse, manage traffic efficiently, and secure endpoints.
+A production-grade distributed rate-limiting backend built with **Spring Boot**, **Redis**, **JWT Authentication**, **Docker**, and **Lua Scripting** — simulating how modern API gateways control traffic, prevent abuse, and ensure fair usage across user roles.
 
 ---
 
-## Features
+## 📌 Overview
 
-### Authentication & Security
+Modern applications receive thousands of API requests every minute. Without traffic control, excessive requests from users or bots can overload servers, degrade performance, or cause outages.
 
-* JWT-based Stateless Authentication
-* Spring Security Integration
-* Role-Based Access Control
-* Protected REST APIs
-
-### Traffic Control
-
-* Distributed Token Bucket Rate Limiting
-* Atomic Redis Operations using Lua Scripts
-* Role-Based Request Limits
-* Automatic Token Refill Mechanism
-
-### User Plans
-
-* FREE User
-* PREMIUM User
-* ADMIN User
-
-### Monitoring & Reliability
-
-* Request Logging
-* Global Exception Handling
-* Centralized Error Responses
-* Dockerized Deployment
+This project implements a **distributed Token Bucket Rate Limiter** that controls API traffic based on user roles, with atomic Redis Lua execution ensuring zero race conditions under concurrent load.
 
 ---
 
-## Tech Stack
+## ✨ Features
 
-### Backend
-
-* Java 21
-* Spring Boot
-* Spring Security
-* Spring MVC
-
-### Data Layer
-
-* Redis
-
-### Authentication
-
-* JWT (JSON Web Token)
-
-### DevOps
-
-* Docker
-* Docker Compose
-
-### Scripting
-
-* Lua
-
-### Build Tool
-
-* Maven
+| Feature | Details |
+|---|---|
+| 🔐 JWT Authentication | Stateless auth with Spring Security filter-chain |
+| 🚦 Token Bucket Rate Limiting | Per-user, per-role limits enforced via Redis |
+| ⚛️ Atomic Lua Execution | Race-condition-free request processing |
+| 👥 Role-Based Access Control | FREE / PREMIUM / ADMIN with different limits |
+| 🐳 Dockerized Deployment | Full setup via Docker Compose |
+| 📋 Request Logging | Every request logged with status and token count |
+| ⚠️ Global Exception Handling | Clean error responses across all endpoints |
 
 ---
 
-## System Architecture
+## 👥 User Roles & Rate Limits
 
-```text
-Client
-   |
-   v
-JWT Authentication Filter
-   |
-   v
-Rate Limit Filter
-   |
-   v
-Rate Limiter Service
-   |
-   v
-Redis + Lua Script
-   |
-   v
-Controller
-   |
-   v
-Response
+| Role | Capacity | Refill Rate |
+|---|---|---|
+| FREE | 5 Tokens | 1 Token/sec |
+| PREMIUM | 100 Tokens | 5 Tokens/sec |
+| ADMIN | Unlimited | Unlimited |
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | Java 21, Spring Boot, Spring MVC |
+| Security | Spring Security, JWT |
+| Rate Limiting | Redis, Lua Scripting |
+| DevOps | Docker, Docker Compose |
+| Build | Maven |
+| Testing | Postman |
+
+---
+
+## 🏗️ System Architecture
+
+```
+                    +----------------+
+                    |     Client     |
+                    +----------------+
+                            |
+                            ▼
+             +---------------------------+
+             | JWT Authentication Filter |
+             +---------------------------+
+                            |
+                            ▼
+               +------------------------+
+               |   Rate Limit Filter    |
+               +------------------------+
+                            |
+                            ▼
+              +-------------------------+
+              |  RateLimiter Service   |
+              +-------------------------+
+                            |
+                            ▼
+         +--------------------------------------+
+         | Redis + Lua Token Bucket Algorithm   |
+         +--------------------------------------+
+                    |              |
+                  ALLOW          BLOCK
+                  200 OK       429 Too Many
 ```
 
 ---
 
-## Project Structure
+## 🔄 How It Works — Request Flow
 
-```text
-src/main/java/com/raj/traffic_control_system
+**Step 1 — Login & get JWT**
+```http
+POST /auth/login?username=raj&role=FREE
+→ Returns JWT token
+```
 
-├── config
-│   ├── RedisConfig
-│   ├── RedisLuaConfig
-│   └── SecurityConfig
-│
-├── controller
-│   ├── AuthController
-│   └── RateLimiterController
-│
-├── exception
-│   ├── ApiError
-│   └── GlobalExceptionHandler
-│
-├── filter
-│   ├── JwtAuthenticationFilter
-│   ├── RateLimitFilter
-│   └── LoggingFilter
-│
-├── service
-│   └── RateLimiterService
-│
-├── util
-│   └── JwtUtil
-│
-└── TrafficControlSystemApplication
+**Step 2 — Call protected API**
+```http
+GET /limited
+Authorization: Bearer <JWT_TOKEN>
+```
+
+**Step 3 — JWT Filter validates token, extracts username + role**
+
+**Step 4 — Rate Limit Filter calls `RateLimiterService.allowRequest()`**
+
+**Step 5 — Redis Lua script runs atomically:**
+- Reads current token count
+- Calculates refill since last request
+- Adds new tokens (up to capacity)
+- Consumes 1 token
+- Saves updated bucket
+
+**Step 6 — Response:**
+```
+Allowed  → HTTP 200 OK         "Request Allowed"
+Blocked  → HTTP 429            "Rate limit exceeded!"
 ```
 
 ---
 
-## How It Works
+## 🔑 API Endpoints
 
-### Step 1: User Login
-
-User requests a JWT token.
-
+### Generate JWT Token
 ```http
 POST /auth/login?username=raj&role=FREE
 ```
-
-Response:
-
 ```json
 {
-  "token": "JWT_TOKEN"
+  "token": "eyJhbGc..."
+}
+```
+
+### Call Protected Endpoint
+```http
+GET /limited
+Authorization: Bearer YOUR_TOKEN
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Java 21+** — [Download](https://adoptium.net/)
+- **Docker & Docker Compose** — [Download](https://www.docker.com/products/docker-desktop/)
+- **Postman** — [Download](https://www.postman.com/downloads/)
+
+> Redis runs automatically via Docker — no separate install needed.
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Rajsolanki0907/Enterprise-API-Traffic-Control-System.git
+cd Enterprise-API-Traffic-Control-System
+```
+
+### 2. Build the Project
+```bash
+mvn clean package
+```
+
+### 3. Start All Containers
+```bash
+docker-compose up --build
+```
+This starts both the Spring Boot app and Redis server automatically.
+
+### 4. Verify Containers Running
+```bash
+docker ps
+```
+You should see:
+```
+traffic-control-system
+redis-rate-limiter
+```
+
+### 5. Generate JWT in Postman
+```
+POST http://localhost:8080/auth/login?username=raj&role=FREE
+```
+Copy the token from the response.
+
+### 6. Test the Rate Limiter
+```
+GET http://localhost:8080/limited
+Header → Authorization: Bearer <TOKEN>
+```
+Send it repeatedly — after the FREE limit (5 tokens) is hit, you'll get:
+```json
+{
+  "status": 429,
+  "error": "Too Many Requests",
+  "message": "Rate limit exceeded!"
 }
 ```
 
 ---
 
-### Step 2: Access Protected API
-
-```http
-GET /limited
-Authorization: Bearer JWT_TOKEN
-```
-
----
-
-### Step 3: JWT Validation
-
-The JWT filter validates the token and extracts:
-
-* Username
-* User Role
-
-Example:
-
-```text
-Username : raj
-Role     : FREE
-```
-
----
-
-### Step 4: Rate Limit Check
-
-The RateLimitFilter sends user details to RateLimiterService.
-
-The service determines:
-
-* Bucket Capacity
-* Refill Rate
-
-Based on the user's role.
-
----
-
-### Step 5: Redis Lua Execution
-
-The Lua script:
-
-* Reads current token count
-* Calculates refill amount
-* Updates bucket
-* Checks request eligibility
-
-All operations execute atomically inside Redis.
-
----
-
-### Step 6: Response
-
-Allowed:
-
-```http
-200 OK
-Request Allowed
-```
-
-Blocked:
-
-```http
-429 Too Many Requests
-Rate limit exceeded!
-```
-
----
-
-## Role Configuration
-
-| Role    | Capacity   | Refill Rate |
-| ------- | ---------- | ----------- |
-| FREE    | 5 Tokens   | 1/sec       |
-| PREMIUM | 100 Tokens | 5/sec       |
-| ADMIN   | Unlimited  | Unlimited   |
-
----
-
-## API Endpoints
-
-### Generate JWT
-
-```http
-POST /auth/login
-```
-
-Parameters:
-
-```text
-username
-role
-```
-
-Example:
-
-```http
-POST /auth/login?username=raj&role=FREE
-```
-
----
-
-### Protected Endpoint
-
-```http
-GET /limited
-```
-
-Headers:
-
-```http
-Authorization: Bearer <JWT_TOKEN>
-```
-
----
-
-## Docker Setup
-
-### Build Project
+## 🐳 Docker Commands
 
 ```bash
-mvn clean package
-```
-
-### Start Containers
-
-```bash
-docker-compose up --build
-```
-
-### Stop Containers
-
-```bash
-docker-compose down
+docker-compose up --build   # Build and start
+docker-compose up           # Start (already built)
+docker-compose down         # Stop all containers
+docker-compose build        # Build only
 ```
 
 ---
 
-## Running Without Docker
+## 📁 Project Structure
 
-### Start Redis
-
-```bash
-docker run -d --name redis-rate-limiter -p 6379:6379 redis
+```
+traffic-control-system/
+├── src/main/java/com.raj.traffic_control_system/
+│   ├── config/         # Redis + Security config
+│   ├── controller/     # API endpoints
+│   ├── exception/      # Global exception handling
+│   ├── filter/         # JWT + Rate limiting filters
+│   ├── service/        # RateLimiterService
+│   ├── util/           # Helpers
+│   └── security/       # Spring Security setup
+├── src/main/resources/
+│   ├── application.properties
+│   └── tokenBucket.lua  # Redis Lua script
+├── Dockerfile
+├── docker-compose.yml
+└── pom.xml
 ```
 
-### Run Spring Boot
+---
 
-```bash
-mvn spring-boot:run
-```
+## 📷 Screenshots
+
+> Add your screenshots to an `images/` folder in the repo root.
+
+### JWT Token Generation
+<img src="images/jwt-token.png" width="900">
+
+### Request Allowed (200 OK)
+<img src="images/request-allowed.png" width="900">
+
+### Rate Limit Exceeded (429)
+<img src="images/rate-limit-exceeded.png" width="900">
+
+### Docker Containers Running
+<img src="images/docker-containers.png" width="900">
+
+### Redis Keys in CLI
+<img src="images/redis-cli.png" width="900">
 
 ---
 
-## Key Concepts Demonstrated
+## 💡 Challenges & Solutions
 
-* Distributed Systems
-* API Gateway Design
-* Token Bucket Algorithm
-* Redis Caching
-* Atomic Operations
-* Lua Scripting
-* JWT Authentication
-* Spring Security
-* Docker Deployment
-* Request Throttling
-* Backend Architecture
+| Challenge | How I Solved It |
+|---|---|
+| Redis connection inside Docker | Fixed container networking in docker-compose.yml |
+| Race conditions under load | Used Redis Lua scripts for atomic execution |
+| Token refill accuracy | Timestamp-based refill calculation in Lua |
+| JWT filter ordering | Configured Spring Security filter chain order explicitly |
+| Redis serialization errors | Configured correct RedisTemplate serializers |
 
 ---
 
-## Challenges Faced
+## 🔮 Future Improvements
 
-### Redis Connectivity Issues
-
-Resolved Docker container networking and hostname configuration.
-
-### Serialization Problems
-
-Migrated rate-limiting state management from Java objects to Redis-based Lua scripts.
-
-### Token Refill Logic
-
-Implemented and debugged time-based token refill behavior for accurate traffic control.
-
-### Docker Build Caching
-
-Resolved stale resource issues through clean rebuilds and image management.
+- [ ] Prometheus + Grafana monitoring dashboard
+- [ ] Kubernetes deployment
+- [ ] Multiple rate limiting algorithms (Sliding Window, Leaky Bucket)
+- [ ] CI/CD pipeline with GitHub Actions
+- [ ] API usage analytics dashboard
+- [ ] Microservice integration
 
 ---
 
-## Future Improvements
+## 📚 Concepts Demonstrated
 
-* Prometheus Metrics Integration
-* Grafana Monitoring Dashboard
-* API Usage Analytics
-* Admin Dashboard
-* Kubernetes Deployment
-* Multiple Rate Limiting Strategies
-* Microservices Support
+`Spring Boot` `Spring Security` `JWT` `Redis` `Lua Scripting` `Token Bucket Algorithm` `Docker` `Docker Compose` `REST APIs` `Distributed Systems` `Rate Limiting` `RBAC` `Request Logging` `Exception Handling`
 
 ---
 
-## Screenshots
+## 👨‍💻 Author
 
-Add screenshots here:
+**Raj Solanki** — Java Backend Developer
 
-### JWT Generation
-
-![JWT](images/jwt-generation.png)
-
-### Successful Request
-
-![Success](images/request-allowed.png)
-
-### Rate Limit Exceeded
-
-![429](images/rate-limit-exceeded.png)
-
-### Docker Containers
-
-![Docker](images/docker-containers.png)
-
-### Redis Keys
-
-![Redis](images/redis-keys.png)
+- 📧 [rajsolanki0907@gmail.com](mailto:rajsolanki0907@gmail.com)
+- 💼 [LinkedIn](https://www.linkedin.com/in/rajsolanki09/)
+- 🐙 [GitHub](https://github.com/Rajsolanki0907)
 
 ---
 
-## Author
-
-Raj Solanki
-
-* LinkedIn: https://www.linkedin.com/in/rajsolanki09/
-* GitHub: https://github.com/Rajsolanki0907
-
----
-
-## License
-
-This project is intended for educational and portfolio purposes.
+⭐ **If this project helped you, please star the repository!**
