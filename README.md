@@ -1,4 +1,4 @@
-# 🚦 Enterprise API Traffic Control & Rate Limiting System
+# Enterprise API Traffic Control & Rate Limiting System
 
 A production-grade distributed rate-limiting backend built with **Spring Boot**, **Redis**, **JWT Authentication**, **Docker**, and **Lua Scripting** — simulating how modern API gateways control traffic, prevent abuse, and ensure fair usage across user roles.
 
@@ -241,9 +241,6 @@ traffic-control-system/
 
 ### Docker Containers Running
 <img src="images/docker-containers.png" width="900">
-
-### Redis Keys in CLI
-<img src="images/redis-cli.png" width="900">
 
 ---
 
